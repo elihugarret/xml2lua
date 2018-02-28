@@ -98,7 +98,7 @@ local _G, print, string, table, pairs, type, tostring, tonumber, error, io, setm
 
 module "xml2lua"
 
----Converts the decimal code of a character to its corresponding char
+---Converts the decimal code  of a character to its corresponding char
 --if it's a graphical char, otherwise, returns the HTML ISO code
 --for that decimal value in the format &#code
 --@param code the decimal value to convert to its respective character
