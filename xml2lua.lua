@@ -92,11 +92,19 @@
 --@author Paul Chakravarti (paulc@passtheaardvark.com)
 --@author Manoel Campos da Silva Filho
 
-local _G, print, string, table, pairs, type, tostring, tonumber, error, io, setmetatable, getmetatable
-      = 
-      _G, print, string, table, pairs, type, tostring, tonumber, error, io, setmetatable, getmetatable
+local print        = print
+local string       = string 
+local table        = table 
+local pairs        = pairs 
+local type         = type 
+local tostring     = tostring 
+local tonumber     = tonumber 
+local error        = error 
+local io           = io 
+local setmetatable = setmetatable 
+local getmetatable = getmetatable
 
-module "xml2lua"
+local xml2lua = {}
 
 ---Converts the decimal code  of a character to its corresponding char
 --if it's a graphical char, otherwise, returns the HTML ISO code
@@ -130,13 +138,13 @@ end
 --@param level the indentation level to start with
 local function printableInternal(tb, level)
   level = level or 1
-  local spaces = string.rep(' ', level*2)
-  for k,v in pairs(tb) do
+  local spaces = string.rep(' ', level * 2)
+  for k, v in pairs(tb) do
       if type(v) == "table" then
          print(spaces .. k)
-         printableInternal(v, level+1)
+         printableInternal(v, level + 1)
       else
-         print(spaces .. k..'='..v)
+         print(spaces .. k .. '=' .. v)
       end
   end  
 end
@@ -165,14 +173,14 @@ function showTable(t)
         res = res .. sep .. string.format("%s=%s", k, v)    
         sep = ','
     end
-    res = '{'..res..'}'
+    res = '{' .. res .. '}'
 
     return res
 end
 
 
 ---Class to parse XML
-XmlParser = {
+local XmlParser = {
     --  Available options are -
     --  
     --      * stripWS   
@@ -251,13 +259,10 @@ XmlParser = {
 -- local handler = require("xmlhandler/tree").
 --@return a XmlParser object used to parse the XML
 --@see XmlParser
-function parser(handler)     
-    if handler == _G["xml2lua"] then
-        error("You must call xml2lua.parse(handler) instead of xml2lua:parse(handler)")
-    end
+function xml2lua.parser(handler)     
 
     local obj = {
-        _handler    = handler,
+        _handler = handler,
 
         -- Public attributes
         options = { 
@@ -284,7 +289,7 @@ function XmlParser:parse(str, parseAttributes)
         error("You must call xmlparser:parse(parametrs) instead of xmlparser.parse(parametrs)")
     end
     
-    if parseAttributes == nil then
+    if not parseAttributes then
         parseAttributes = true
     end
     self._handler.parseAttributes = parseAttributes
@@ -299,13 +304,13 @@ function XmlParser:parse(str, parseAttributes)
             if string.find(str, self._WS, pos) then
                 -- No more text - check document complete
                 if #self._stack ~= 0 then
-                    self:_err(self._errstr.incompleteXmlErr,pos)
+                    self:_err(self._errstr.incompleteXmlErr, pos)
                 else
                     break 
                 end
             else
                 -- Unparsable text
-                self:_err(self._errstr.xmlErr,pos)
+                self:_err(self._errstr.xmlErr, pos)
             end
         end 
 
@@ -315,39 +320,39 @@ function XmlParser:parse(str, parseAttributes)
         match = match + string.len(text)
         text = self:_parseEntities(self:_stripWS(text))
         if text ~= "" and self._handler.text then
-            self._handler:text(text,nil,match,endtext)
+            self._handler:text(text, nil, match, endtext)
         end
         
         -- Test for tag type
-        if string.find(string.sub(tagstr,1,5),"?xml%s") then
+        if string.find(string.sub(tagstr, 1, 5), "?xml%s") then
             -- XML Declaration
-            match,endmatch,text = string.find(str, self._PI, pos)
+            match, endmatch, text = string.find(str, self._PI, pos)
             if not match then 
-                self:_err(self._errstr.declErr,pos)
+                self:_err(self._errstr.declErr, pos)
             end 
             if match ~= 1 then
                 -- Must be at start of doc if present
-                self:_err(self._errstr.declStartErr,pos)
+                self:_err(self._errstr.declStartErr, pos)
             end
-            tagname,attrs = self:_parseTag(text) 
+            tagname, attrs = self:_parseTag(text) 
             -- TODO: Check attributes are valid
             -- Check for version (mandatory)
             if attrs.version == nil then
-                self:_err(self._errstr.declAttrErr,pos)
+                self:_err(self._errstr.declAttrErr, pos)
             end
             if self._handler.decl then 
-                self._handler:decl(tagname,attrs,match,endmatch) 
+                self._handler:decl(tagname, attrs, match, endmatch) 
             end
-        elseif string.sub(tagstr,1,1) == "?" then
+        elseif string.sub(tagstr, 1, 1) == "?" then
             -- Processing Instruction
-            match,endmatch,text = string.find(str,self._PI,pos)
+            match, endmatch, text = string.find(str, self._PI, pos)
             if not match then 
-                self:_err(self._errstr.piErr,pos)
+                self:_err(self._errstr.piErr, pos)
             end 
             if self._handler.pi then 
                 -- Parse PI attributes & text
-                tagname,attrs = self:_parseTag(text) 
-                local pi = string.sub(text,string.len(tagname)+1)
+                tagname, attrs = self:_parseTag(text) 
+                local pi = string.sub(text, string.len(tagname) + 1)
                 if pi ~= "" then
                     if attrs then
                         attrs._text = pi
@@ -355,60 +360,58 @@ function XmlParser:parse(str, parseAttributes)
                         attrs = { _text = pi }
                     end
                 end
-                self._handler:pi(tagname,attrs,match,endmatch) 
+                self._handler:pi(tagname, attrs, match, endmatch) 
             end
-        elseif string.sub(tagstr,1,3) == "!--" then
+        elseif string.sub(tagstr, 1, 3) == "!--" then
             -- Parse a Comment
-            match,endmatch,text = string.find(str,self._COMMENT,pos)
+            match, endmatch, text = string.find(str, self._COMMENT, pos)
             if not match then 
-                self:_err(self._errstr.commentErr,pos)
+                self:_err(self._errstr.commentErr, pos)
             end 
             if self._handler.comment then 
                 text = self:_parseEntities(self:_stripWS(text))
-                self._handler:comment(text,next,match,endmatch)
+                self._handler:comment(text, next, match, endmatch)
             end
-        elseif string.sub(tagstr,1,8) == "!DOCTYPE" then
+        elseif string.sub(tagstr, 1, 8) == "!DOCTYPE" then
             -- Parse DTD
-            match,endmatch,attrs = self:_parseDTD(str,pos)
+            match, endmatch, attrs = self:_parseDTD(str, pos)
             if not match then 
-                self:_err(self._errstr.dtdErr,pos)
+                self:_err(self._errstr.dtdErr, pos)
             end 
             if self._handler.dtd then
-                self._handler:dtd(attrs._root,attrs,match,endmatch)
+                self._handler:dtd(attrs._root, attrs, match, endmatch)
             end
         elseif string.sub(tagstr,1,8) == "![CDATA[" then
             -- Parse CDATA
-            match,endmatch,text = string.find(str,self._CDATA,pos)
+            match, endmatch, text = string.find(str, self._CDATA, pos)
             if not match then 
-                self:_err(self._errstr.cdataErr,pos)
+                self:_err(self._errstr.cdataErr, pos)
             end 
             if self._handler.cdata then
-                self._handler:cdata(text,nil,match,endmatch)
+                self._handler:cdata(text, nil, match, endmatch)
             end
         else
             -- Parse a Normal tag
             -- Need check for embedded '>' in attribute value and extend
             -- match recursively if necessary eg. <tag attr="123>456"> 
             while 1 do
-                errstart,errend = string.find(tagstr,self._ATTRERR1)
-                if errend == nil then
-                    errstart,errend = string.find(tagstr,self._ATTRERR2)
-                    if errend == nil then
-                        break
-                    end
+                errstart, errend = string.find(tagstr, self._ATTRERR1)
+                if not errend then
+                    errstart, errend = string.find(tagstr, self._ATTRERR2)
+                    if not errend then break end
                 end
-                extstart,extend,endt2 = string.find(str,self._TAGEXT,endmatch+1)
-                tagstr = tagstr .. string.sub(str,endmatch,extend-1)
+                extstart,extend,endt2 = string.find(str, self._TAGEXT, endmatch+1)
+                tagstr = tagstr .. string.sub(str, endmatch, extend - 1)
                 if not match then 
-                    self:_err(self._errstr.xmlErr,pos)
+                    self:_err(self._errstr.xmlErr, pos)
                 end 
                 endmatch = extend
             end 
 
             -- Extract tagname/attrs
-            tagname,attrs = self:_parseTag(tagstr) 
+            tagname, attrs = self:_parseTag(tagstr) 
 
-            if (endt1=="/") then
+            if endt1 == "/" then
                 -- End tag
                 if self._handler.endtag then
                     if attrs then
@@ -416,7 +419,7 @@ function XmlParser:parse(str, parseAttributes)
                         self:_err(string.format("%s (/%s)",
                                             self._errstr.endTagErr,
                                             tagname)
-                                    ,pos)
+                                    , pos)
                     end
                     if table.remove(self._stack) ~= tagname then
                         self:_err(string.format("%s (/%s)",
@@ -424,23 +427,23 @@ function XmlParser:parse(str, parseAttributes)
                                             tagname)
                                     ,pos)
                     end
-                    self._handler:endtag(tagname,nil,match,endmatch)
+                    self._handler:endtag(tagname, nil, match, endmatch)
                 end
             else
                 -- Start Tag
-                table.insert(self._stack,tagname)
+                table.insert(self._stack, tagname)
                 if self._handler.starttag then
-                    self._handler:starttag(tagname,attrs,match,endmatch)
+                    self._handler:starttag(tagname, attrs, match, endmatch)
                 end
                 --TODO: Tags com fechamento automático estão sendo
                 --retornadas como uma tabela, o que complica
                 --para a app NCLua tratar isso. É preciso
                 --fazer com que seja retornado um campo string vazio.
                 -- Self-Closing Tag
-                if (endt2=="/") then
+                if endt2 == "/" then
                     table.remove(self._stack)
                     if self._handler.endtag then
-                        self._handler:endtag(tagname,nil,match,endmatch)
+                        self._handler:endtag(tagname, nil, match, endmatch)
                     end
                 end
             end
@@ -454,15 +457,15 @@ end
 
 function XmlParser:_err(err, pos)
     if self.options.errorHandler then
-        self.options.errorHandler(err,pos)
+        self.options.errorHandler(err, pos)
     end
 end
 
 --Removes whitespaces
 function XmlParser:_stripWS(s)
     if self.options.stripWS then
-        s = string.gsub(s,'^%s+','')
-        s = string.gsub(s,'%s+$','')
+        s = string.gsub(s, '^%s+', '')
+        s = string.gsub(s, '%s+$', '')
     end
     return s
 end
@@ -470,9 +473,9 @@ end
 function XmlParser:_parseEntities(s) 
     if self.options.expandEntities then
         --for k,v in self._ENTITIES do
-        for k,v in pairs(self._ENTITIES) do
+        for k, v in pairs(self._ENTITIES) do
             --print (k, v) 
-            s = string.gsub(s,k,v)
+            s = string.gsub(s, k, v)
         end
     end
 
@@ -530,7 +533,7 @@ function XmlParser:_parseTag(s)
     return tagname, attrs
 end
 
-function loadFile(xmlFilePath)
+function xml2lua.loadFile(xmlFilePath)
     local f, e = io.open(xmlFilePath, "r")
     if f then
         --Gets the entire file content and stores into a string
@@ -539,3 +542,5 @@ function loadFile(xmlFilePath)
     
     error(e)
 end
+
+return xml2lua

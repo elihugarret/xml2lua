@@ -45,15 +45,23 @@
 --@author Paul Chakravarti (paulc@passtheaardvark.com)
 --@author Manoel Campos da Silva Filho
 
-local _G, print, string, table, pairs, type, tostring, tonumber, error, io
-      = 
-      _G, print, string, table, pairs, type, tostring, tonumber, error, io
+local print        = print
+local string       = string 
+local table        = table 
+local pairs        = pairs 
+local type         = type 
+local tostring     = tostring 
+local tonumber     = tonumber 
+local error        = error 
+local io           = io 
+local setmetatable = setmetatable 
+local getmetatable = getmetatable
 
-module "xmlhandler.tree"
+local tree = {}
 
-root = {}     
-stack = {root; n=1}
-options = {noreduce = {}}
+tree.root = {}     
+tree.stack = {tree.root; n = 1}
+tree.options = {noreduce = {}}
 
 --Gets the first key of a table
 --@param tb table to get its first key
@@ -71,7 +79,7 @@ local function getFirstKey(tb)
    return tb
 end
 
-function reduce(self, node, key, parent)
+function tree.reduce(self, node, key, parent)
     -- Recursively remove redundant vectors for nodes
     -- with single child elements
     for k,v in pairs(node) do
@@ -90,7 +98,7 @@ end
 ---Parses a start tag
 --@param t Table that represents a XML tag
 --@param a Attributes table (_attr)
-function starttag(self, t, a)
+function tree.starttag(self, t, a)
     local node = {}
     if self.parseAttributes == true then
         node._attr=a
@@ -107,7 +115,7 @@ end
 
 ---Parses an end tag
 --@param t Tag name
-function endtag(self, t, s)
+function tree.endtag(self, t, s)
     --Tabela que representa a tag atualmente sendo processada
     local current = self.stack[#self.stack]
     --Tabela que representa a tag na qual a tag
@@ -139,9 +147,11 @@ function endtag(self, t, s)
     table.remove(self.stack)
 end
 
-function text(self, t)
+function tree.text(self, t)
     local current = self.stack[#self.stack]
     table.insert(current,t)
 end
 
-cdata = text
+tree.cdata = tree.text
+
+return tree
